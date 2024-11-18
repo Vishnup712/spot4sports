@@ -1,0 +1,129 @@
+generator client {
+   provider = "prisma-client-js"
+}
+
+datasource db {
+   provider = "mongodb"
+   url      = env("DATABASE_URL")
+}
+
+model User {
+   id        String    @id @default(auto()) @map("_id") @db.ObjectId
+   email     String    @unique
+   password  String
+   name      String
+   role      Role      @default(USER)
+   turfs     Turf[]
+   bookings  Booking[]
+   createdAt DateTime  @default(now())
+   updatedAt DateTime  @updatedAt
+   player    Player?
+}
+
+model Turf {
+   id           String    @id @default(auto()) @map("_id") @db.ObjectId
+   name         String
+   location     String
+   price        Float
+   description  String
+   images       String[]  @default([])
+   facilities   String[]  @default([])
+   openTime     String?
+   closeTime    String?
+   slotDuration Int?
+   ownerId      String    @db.ObjectId
+   owner        User      @relation(fields: [ownerId], references: [id])
+   bookings     Booking[]
+   createdAt    DateTime  @default(now())
+   updatedAt    DateTime  @updatedAt
+}
+
+model Booking {
+   id            String   @id @default(auto()) @map("_id") @db.ObjectId
+   date          DateTime
+   startTime     DateTime
+   endTime       DateTime
+   totalPrice    Float?
+   paymentStatus String   @default("PENDING")
+   userId        String   @db.ObjectId
+   user          User     @relation(fields: [userId], references: [id])
+   turfId        String   @db.ObjectId
+   turf          Turf     @relation(fields: [turfId], references: [id])
+   status        Status   @default(PENDING)
+   createdAt     DateTime @default(now())
+   updatedAt     DateTime @updatedAt
+}
+
+model Player {
+   id              String    @id @default(auto()) @map("_id") @db.ObjectId
+   userId          String    @unique @db.ObjectId
+   user            User      @relation(fields: [userId], references: [id])
+   position        String?
+   availability    String    @default("AVAILABLE")
+   phoneNumber     String?
+   location        String
+   rating          Float     @default(0)
+   totalRatings    Int       @default(0)
+   skills          String[]  @default([])
+   experience      Int?
+   bio             String?
+   receivedRatings Rating[]  @relation("ReceivedRatings")
+   givenRatings    Rating[]  @relation("GivenRatings")
+   posts           Post[]
+   comments        Comment[]
+   createdAt       DateTime  @default(now())
+   updatedAt       DateTime  @updatedAt
+   sport           String    @default("Football")
+}
+
+model Rating {
+   id           String   @id @default(auto()) @map("_id") @db.ObjectId
+   value        Float
+   comment      String?
+   fromPlayerId String   @db.ObjectId
+   toPlayerId   String   @db.ObjectId
+   fromPlayer   Player   @relation("GivenRatings", fields: [fromPlayerId], references: [id])
+   toPlayer     Player   @relation("ReceivedRatings", fields: [toPlayerId], references: [id])
+   createdAt    DateTime @default(now())
+}
+
+model Post {
+   id        String    @id @default(auto()) @map("_id") @db.ObjectId
+   title     String
+   content   String
+   type      PostType
+   location  String
+   playerId  String    @db.ObjectId
+   player    Player    @relation(fields: [playerId], references: [id])
+   comments  Comment[]
+   createdAt DateTime  @default(now())
+   updatedAt DateTime  @updatedAt
+}
+
+model Comment {
+   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+   content   String
+   postId    String   @db.ObjectId
+   post      Post     @relation(fields: [postId], references: [id])
+   playerId  String   @db.ObjectId
+   player    Player   @relation(fields: [playerId], references: [id])
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+}
+
+enum Role {
+   USER
+   ADMIN
+}
+
+enum Status {
+   PENDING
+   CONFIRMED
+   CANCELLED
+}
+
+enum PostType {
+   PLAYER_NEEDED
+   TEAM_ANNOUNCEMENT
+   GENERAL_DISCUSSION
+}
